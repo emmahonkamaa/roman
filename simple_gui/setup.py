@@ -49,7 +49,7 @@ setup(
     ],
 
     zip_safe=True,
-    #packages=find_packages(exclude=['contrib', 'docs', 'tests']),
+    packages=find_packages(exclude=['contrib', 'docs', 'tests']),
     py_modules=['roman_tki'],
     include_package_data = True,
     package_data={

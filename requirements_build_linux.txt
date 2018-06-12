@@ -1,1 +1,2 @@
 PyInstaller >= 3.2.1
+tk
