@@ -70,7 +70,6 @@ You might be able to add yourself to that group with 'sudo adduser docker'.
     # create validator (and validate config)
     logging.info("Validation step:")
     validator = Validator(config)
-    validator.validate( path.join(getcwd(), "_build/yaml/index.yaml") , "index", 1)
     # build course
     builder = engine.create_builder(config)
     result = builder.build()

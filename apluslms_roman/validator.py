@@ -31,7 +31,6 @@ class Validator:
         logger.info(" Locating matching version v%d...", major)
         serial, ext = self.find_newest(schema, major, minor)
         schema_fullname = "{}_v{}_{}.{}".format(schema, serial[0], serial[1], ext[1])
-        logger.debug(" Using schema: %s", schema_fullname)
         schema_path = os.path.join(ext[0], schema_fullname)
         logger.info(" Starting validation of %s with %s", filename, schema_fullname)
         result = self.assert_valid(schema_path, filename)
@@ -40,7 +39,7 @@ class Validator:
 
     def find_all_matches(self, schema):
         prog = re.compile("{}_v(\d+)_(\d+).(yaml|yml|json)".format(schema))
-        logger.debug(" Schema-------------%s", schema)
+        logger.debug(" Looking for schema-------------%s", schema)
         for folder in self.folders:
             logger.debug(" Folder-------------%s",  folder)
             for ff in os.listdir(folder):
@@ -84,11 +83,3 @@ class Validator:
         logger.info('Files opened succesfully. Validating...')
         validate(yaml.safe_load(ff), yaml.safe_load(ss))
         logger.info('Done')
-
-    # def get_schema_folder_and_type(self, schema, serial):
-    #     return schema_index.get(schema).get(serial)
-    #
-    # def get_schema_name_from_file(self, filename):
-    #     prog = re.compile("^\/(.+\/)*(.+)\.(json|yaml|yml)$")
-    #     name = prog.match(filename).groups()[1]
-    #     return name
