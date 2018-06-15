@@ -1,7 +1,7 @@
 import argparse
-from os import getcwd, path
+from os import getcwd
 from os.path import abspath, expanduser, expandvars
-from sys import exit, stderr, modules
+from sys import exit
 import logging
 
 from . import __version__
@@ -15,8 +15,6 @@ LOG_LEVELS = [logging.WARNING, logging.INFO, logging.DEBUG]
 logger = logging.getLogger(__name__)
 
 def main():
-
-
     parser = argparse.ArgumentParser(description='Course material builder')
     parser.add_argument('course', nargs='?',
                         help='Location of the course definition. (default: current working dir)')
@@ -68,8 +66,15 @@ You might be able to add yourself to that group with 'sudo adduser docker'.
         exit(1)
 
     # create validator (and validate config)
-    logging.info("Validation step:")
+    logging.info(" >> Validation step:")
     validator = Validator(config)
+    # validation_result = validator.validate(location of the file here, "config", 1)
+    # if validation_result is False:
+    #    logging.warning( "Validation unsuccessful. Terminating.")
+    #    exit(0)
+    logging.info(" >> All files validated succesfully")
+
+
     # build course
     builder = engine.create_builder(config)
     result = builder.build()
