@@ -59,10 +59,6 @@ properties:
     properties:
       tokenizer:
         $ref: '#/definitions/languageType'
-        #enum:
-        #  - python
-        #  - scala
-        #  - javascript
       minimum_match_tokens:
         type: number
         minimum: 0

@@ -2,7 +2,6 @@ import yaml
 from jsonschema import validate, ValidationError
 import re
 import os
-#from operator import itemgetter
 import logging
 
 logger = logging.getLogger(__name__)

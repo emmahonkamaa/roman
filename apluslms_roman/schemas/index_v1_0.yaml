@@ -9,6 +9,19 @@ definitions:
   configFormat:
     type: string
     pattern: \.(json|yaml|yml)$
+  nameTypeA:
+    type: object
+    required:
+      anyOf:
+        - en
+        - fi
+    prperties:
+      en:
+        type: string
+      fi:
+        type: string
+  nameTypeB:
+    type: string
   statusEnum:
     type: string
     enum:
@@ -19,7 +32,81 @@ definitions:
       - hidden
       - maintenance
       - nototal
-
+  moduleType:
+    type: object
+    required:
+      - key
+      - name
+    additionalProperties: false
+    properties:
+      key:
+        type: string
+      name:
+        oneOf:
+          - $ref: '#/definitions/nameTypeA'
+          - $ref: '#/definitions/nameTypeB'
+      static_content:
+        type:
+          oneOf:
+            - string
+            - object
+      points_to_pass:
+        type: number
+      category:
+        type: string
+      children:
+        type: array
+        additionalItems: false
+        items:
+          $ref: '#/definitions/exerciseType'
+      status:
+        $ref: '#/definitions/statusEnum'
+      #use_wide_column:
+      #  type: boolean
+      close:
+        $ref: '#/definitions/dateTime'
+      late_close:
+        $ref: '#/definitions/dateTime'
+      late_penalty:
+        type: number
+        minimum: 0.0
+      open:
+        $ref: '#/definitions/dateTime'
+  exerciseType:
+    type: object
+    required:
+      - key
+      - name
+    properties:
+      key:
+        type: string
+      name:
+        oneOf:
+          - $ref: '#/definitions/nameTypeA'
+          - $ref: '#/definitions/nameTypeB'
+      config:
+        type: string
+      category:
+        type: string
+      max_submissions:
+        type: number
+      max_points:
+        type: number
+      points_to_pass:
+        type: number
+      allow_assistant_grading:
+        type: boolean
+      static_content:
+        type: string
+      status:
+        $ref: '#/definitions/statusEnum'
+      use_wide_column:
+        type: boolean
+      children:
+        type: array
+        additionalItems: false
+        items:
+          $ref: '#/definitions/exerciseType'
 
 required:
   - categories
@@ -44,132 +131,26 @@ properties:
           type: string
         status:
           $ref: '#/definitions/statusEnum'
+  start:
+    $ref: '#/definitions/dateTime'
   end:
     $ref: '#/definitions/dateTime'
   language:
+    type: array
+    items:
+      type: string
+  lang:
+    type: array
+    items:
+      type: string
+  name:
     type: string
-    enum:
-      - en
-      - fi
+  contact:
+    type: string  #email?
+  static_dir:
+    type: string
   modules:
     type: array
     additionalItems: false
     items:
-      type: object
-      required:
-        - children
-        - key
-        # muita pakollisia?
-      properties:
-        children:
-          type: array
-          additionalItems: false
-          items:
-            type: object
-            required:
-              - category
-              - key
-            #additionalProperties: false
-            properties:
-              category:
-                type: string
-              children:
-                type: array
-                additionalItems: false
-                items:
-                  type: object
-                  required:
-                    - category
-                  properties:
-                    category:
-                      type: string
-                    children:
-                      type: array
-                      additionalItems: false
-                      items:
-                        type: object
-                        required:
-                          - category
-                          - key
-                        #additionalProperties: false
-                        properties:
-                          allow_assistant_grading:
-                            type: boolean
-                          category:
-                            type: string
-                          config:
-                            $ref: '#/definitions/configFormat'
-                          confirm_the_level:
-                            type: boolean
-                          difficulty:
-                            type: string
-                          key:
-                            type: string
-                          lti:
-                            type: string
-                          lti_context_id:
-                            type: string
-                          lti_resource_link_id:
-                            type: string
-                          max_group_size:
-                            type: number
-                            minimum: 0
-                          max_points:
-                            type: number
-                            minimum: 0
-                          max_submissions:
-                            type: number
-                            minimum: 0
-                          min_group_size:
-                            type: number
-                            minimum: 0
-                          points_to_pass:
-                            type: number
-                            minimum: 0
-                          scale_points:
-                            type: number
-                          status:
-                            $ref: '#/definitions/statusEnum'
-                          title:
-                            type: string
-                    key:
-                      type: string
-                    name:
-                      type: string
-                    static_content:
-                      type: string
-                    use_wide_column:
-                      type: boolean
-
-              key:
-                type: string
-              name:
-                type: string
-              static_content:
-                type: string
-              status:
-                $ref: '#/definitions/statusEnum'
-              use_wide_column:
-                type: boolean
-        close:
-          $ref: '#/definitions/dateTime'
-        key:
-          type: string
-        late_close:
-          $ref: '#/definitions/dateTime'
-        late_penalty:
-          type: number
-          minimum: 0.0
-        name:
-          type: string
-        open:
-          $ref: '#/definitions/dateTime'
-        status:
-          $ref: '#/definitions/statusEnum'
-
-  name:
-    type: string
-  start:
-    $ref: '#/definitions/dateTime'
-  static_dir:
-    type: string
+      $ref: '#/definitions/moduleType'
