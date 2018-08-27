@@ -30,8 +30,6 @@ class Validator:
         self.find_all_matches(schema)
         logger.info(" Locating matching version v%d...", major)
         serial, schema_path = self.find_newest(schema, major, minor)
-        #schema_fullname = "{}_v{}_{}".format(schema, serial[0], serial[1])
-        #schema_path = os.path.join(ext[0], schema_fullname)
         logger.info(" Starting validation of %s with %s", filename, schema_path)
         return self.assert_valid(schema_path, filename)
 

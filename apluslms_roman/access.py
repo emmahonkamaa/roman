@@ -1,5 +1,6 @@
 import logging
 from copy import deepcopy
+#from dataset import CourseData
 
 logger = logging.getLogger(__name__)
 
@@ -12,36 +13,26 @@ exerciseFields = ["key", "title", "name", "category", "max_submisions", "max_poi
                 "points_to_pass", "allow_assistant_grading", "status",
                 "use_wide_column", "allow_asistant_viewing", "min_group_size",
                 "max_group_size", "difficulty", "order", "audience", "description" ]
-#Puuttuu: url, exercise_info, model_answer, exercise_template
+
 
 STATIC = 'http://grader.fi/'
 KEY = 'placeholder'
-#systeemi menee about:
-
-   # ---- parse index.yaml (and update with "include"-fields)
-   # ---- validate index.yaml
-   # ----> Meillä on nyt index (dict)
-
-   # ---- aplus_json(index)
-   # ----> data (dict)
-
-
 
 
 def aplus_json(course):
     '''
     Takes a dict and formats it to the form that aplus uses.
     @type course: C{dict}
-    @param course: contents of index.yaml
+    @param course: contents of course and exercises
+    @rtype: C{dict}
+    @return: an object representing the configuration file or None
     '''
-    index = course["index"]
-    def_lang = course["default_lang"]
-    print(def_lang)
+    index = course.get_data()
+    def_lang = course.get_def_lang()
     data = {}
     _copy_fields(data, index, indexFields)
     if "language" in index:
         data["lang"] = deepcopy(index["language"])
-
 
 
     def children_recursion(parent):
@@ -51,10 +42,10 @@ def aplus_json(course):
         for o in [o for o in parent["children"] if "key" in o]:
             of =_type_dict(o, index.get("exercise_types", {}))
             if "config" in of:
-                of = _process_config_data(of, course, def_lang)#on tehtävä, jos sisältää "config"?
-                of = _get_url_to_exercise(of)
-            elif "static_content" in of:  #static content -> luku
-                 of = _get_url_to_static(of, index)
+                of = _process_config_data(of, course, def_lang)
+                of = _get_url_to_exercise(of) #TODO
+            elif "static_content" in of:
+                of = _get_url_to_static(of, index) #TODO
             of["children"] = children_recursion(o)
             result.append(of)
         return result
@@ -67,21 +58,20 @@ def aplus_json(course):
             modules.append(mf)
     data["modules"] = modules
 
-    #mites "gitmanager?"
+    #TODO "gitmanager?"
     #if "gitmanager" in settings.INSTALLED_APPS:
     #   data["build_log_url"] = request.build_absolute_uri(reverse("build-log-json", args=(course_key, )))
     return data
 
 def _process_config_data(of, course, lang):
+    exercises = course.get_exercise_keys()
+    config_files = course.get_config_files()
     config_file = of.pop("config")
     exercise = {}
     new_data = {}
-    if "key" in of and of["key"] in course["exercise_keys"]:
-        exercise = course["config_files"][of["key"]]
-        #_copy_fields(new_data, exercise, ["description", "title" ])
+    if "key" in of and of["key"] in exercises:
+        exercise = config_files[of["key"]]
         new_data.update(of)
-        #return new_data
-        print(of['key'])
         if exercise is None:
             return new_data
 
@@ -92,7 +82,7 @@ def _process_config_data(of, course, lang):
 
 
         form, i18n = form_fields(exercise, lang)
-        print("ok", i18n)
+        print(of["key"])
         new_data['exercise_info'] = {
             'form_spec': form,
             'form_i18n': i18n,
@@ -109,50 +99,33 @@ def _process_config_data(of, course, lang):
             new_data['exercise_template'] = exercise['exercise_template']
         #TODO elif template_files
 
-
-
-
-
-        #tässä: hae configista halutut kentät
         return new_data
 
     else:
-        logger.warning("Avain ei %s löydy!", of["key"])
+        logger.warning("Key not found: %s", of["key"])
         return of
 
 def form_fields(exercise, lang):
     form = []
     i18n = {}
 
-    def i18n_map(value):
-        if value is "" :
-            return ""
-        key = value
-        if key in i18n:
-
-            raise exception ("Label must be unique, %s alreayd exists in this exercise.", key)
-        i18n[key] = value
-        return key
-
     def i18n_m(field):
         key = field
-        if type(field) == dict:
+        if isinstance(field, dict):
             l,d = zip(*field.items())
             if lang in l:
-                #print("ok")
                 key = field[lang]
             else:
                 key = d[0]
-        elif type(field) is not str:
+        elif not isinstance(field, str):
             print("???")
 
-        while key in i18n:
+        while key in i18n and i18n[key] != field:
+            print(key, field, "\n")
+            logger.warning("Label should be unique, '%s' already exists in this exercise.", key)
             key += "_duplicate"
-            #raise exception ("Label must be unique, %s alreayd exists in this exercise.", key)
         i18n[key] = field
         return key
-
-
 
 
     def field_spec(f, n):
@@ -169,10 +142,6 @@ def form_fields(exercise, lang):
         if 'more' in f:
             field['description'] = i18n_m(f.get('more', ''))
         if 'more|i18n' in f:
-            # desc = f.get('more|i18n', {})
-            # if type(desc) == dict:
-            #     l,d = zip(*desc.items())
-            #     desc = d[0]
             field['description'] = i18n_m(f.get('more|i18n', {}))
 
         if 'options' in f:
@@ -207,11 +176,12 @@ def form_fields(exercise, lang):
                 t = fs.get('type', None)
                 if t == 'table-radio' or t == 'table-checkbox':
                     logger.debug("Found 'table-radio'!")
+                    #for rows in f.get('rows', []):
+
 
                 else:
                     form.append(field_spec(fs, n))
                     n += 1
-
 
 
     elif t == 'access.types.stdasync.acceptPost':
@@ -234,21 +204,6 @@ def form_fields(exercise, lang):
 
     return form, i18n
 
-def list_get(dicts, key, default):
-   return [
-        d.get(key, default)
-        for d in dicts
-    ]
-
-
-def i18n_get(languages, values, key):
-    if len(languages) == 1:
-        return values[0].get(key)
-    return {
-        l: values[i].get(key)
-        for i,l in enumerate(languages)
-}
-
 def _get_url_to_exercise(data):
     #run service that generates url.
     #for now we use placeholder:
@@ -260,7 +215,7 @@ def _get_url_to_exercise(data):
 def _get_url_to_static(data, index):
     #for now, STATIC contains a placeholder
     path = data.pop('static_content')
-    if type(path) == dict:
+    if isinstance(path, dict):
         data['url'] = {
             lang: '{}{}/{}'.format(STATIC, KEY, p)
             for lang, p in path.items()
@@ -281,83 +236,9 @@ def _copy_fields(result, dict_item, pick_fields):
 
 def _type_dict(dict_item, dict_types):
     base = {}
-    if "type" in dict_item and dict_item["type"] in dict_types: #jos o:n "type" on dict_typesissä
+    if "type" in dict_item and dict_item["type"] in dict_types:
         base = deepcopy(dict_types[dict_item["type"]])
-    base.update(dict_item) # lisätään sinne
+    base.update(dict_item)
     if "type" in base:
         del base["type"]
     return base
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#
-#
-#
-#
-# def url_to_exercise(request, course_key, exercise_key):
-#     return request.build_absolute_uri(
-#         reverse('exercise', args=[course_key, exercise_key]))
-#
-#
-# def export_chapter(course, of):
-#     path = of.pop('static_content')
-#     if type(path) == dict:
-#         of['url'] = {
-#             lang: url_to_static(----, course['key'], p) #TODO: muokkaa tässä url!!
-#             for lang, p in path.items()
-#         }
-#     else:
-#         of['url'] = url_to_static(----, course['key'], path) #TODO: ks yllä
-#     return of
-#
-# def export_exercise(course, exercise_root, of):
-#     of.pop('config')
-#     languages, excercises = zip(*exercise_root.items())
-#     exercise = exercises[0]
-#     if not 'title' in of and not 'name' in of:
-#         if len(languages) == 1:
-#             l = exercises[0].get('title')
-#         else
-#             l = { l: exercises[i].get('title') for i, l in enumerate(languages) }
-#         of['title'] = l
-#     if not 'description' in of:
-#         of['description'] = exercise.get('description', '')
-#     if 'url' in exercise:
-#         of['url'] = exercise['url']
-#     else:
-#         of['url'] = url_to_exercise(request, course['key'], exercise['key'])
-#
-
-
-# def aplus_json(course):
-#     try:
-#         with open('course.yaml') as f:
-#             _file = yaml.load(f.read())
-#             course_to_aplus_json(_file)
-#     except:
-#         print("Error")
